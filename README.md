@@ -141,6 +141,12 @@ Not decided yet on which method to use to attain highest accuracy and efficiency
 **Next Steps:**  
 Refine the algorithm and start real-time testing.
 
+### Day 16
+**Summary:**  
+Finalise the sensors, system for data transmission and add finalised data on our hardware.
+
+We had to test and trial different hardware and finalised the specifications for the system.
+
 ---
 
 ## VIII. Hardware Documentation (Upcoming)
@@ -157,26 +163,71 @@ Refine the algorithm and start real-time testing.
 
 | Sensor         | Model     | Range     | Accuracy | Protocol | Address | Connection |
 |----------------|-----------|-----------|----------|----------|---------|------------|
-| ToF Front      | VL53L0X   | 0–2m      | ±1cm     | I2C      | 0x29    | Sensor Hub I2C |
+| ToF Front      | VL53L0X   | 0–2m      | ±4cm     | I2C      | 0x29    | Sensor Hub I2C |
 | Ultrasonic L/R | CS100A   | 2–400cm   | ±3mm     | GPIO     | N/A     | Sensor Hub PWM |
 | RGB Bottom     | TCS34725  | Visible spectrum | Color/Light | I2C  | 0x29    | Sensor Hub I2C |
 | Camera Module  | OV5647    | 5MP       | –        | CSI      | –       | Mainboard's Camera Interface |
+
+
+## Sensors and Interfacing
+There are two main group of sensors in the whole system. 2x MIPI CSI cameras based on OV5647 connected through the CSI bus in the main board for vision on both sides, and the sensor and data acquisition module which is based on a custom firmware on ESP32-S3 Pico development board. 
+
+**A bit of description**
+Initially, we wanted the system to be as minimal as possible, but our chosen mainboard has only 1 I2C bus. The problem arose when our chosen ToF sensors, `VL53L0X`, they share the same I2C address. Additionally, there are multiple ultrasonic sensors used to acquire data again, and we calculate the most accurate distance from the data of both the ultrasonic sensors, ToF sensors. We already had restrictions on the number of I/O and on top of that running the calculations and distance mapping services, might slow down and put load on the main CPU which can be avoided by including a simple sensor expansion board, in our case, the `Waveshare ESP32-S3 Pico`. We adapted the official ESP-IDF SDK for the ESP32-S3, and added the sensor libraries creating a firmware that works as an I2C slave which has all the required sensors, processes the data and outputs a calculated distance when prompted for.
+
+
+**How it works**
+
+The cameras are responsible for the vision and are the primary sources of data for the system. And the sensors are operated from an ESP32-S3 daughter board for real-time accurate calculations without adding more load to the main CPU.
+- **Sensor specifications**
+
+  - Name : CS100A
+  - Type : Ultrasonic sensor
+  - Communication : PWM, through ESP32-S3
+  - Range & Blind spots: upto 300cm and 4cm.
+  - Purpose : Calculate distance of the closest obstruction from the present location.
+  
+  - Name : TCS34725
+  - Type : RGB color sensor
+  - Communication : I2C, through PCA9548A
+  - Purpose : Calculate the amount of laps taken.
+  Alternative
+  
+  - Name : AS7341
+  - Type : Infrared color spectrometer
+  - Communication : I2C, through PCA9548A
+  - Purpose : Calculate the amount of laps taken.
+  
+  - Name : VL53L0X
+  - Type : ToF sensor
+  - Communication : I2C, through PCA9548A
+  - Range & Blind spots: upto 200cm and 3cm.
+  - Purpose : Calculate distance of the closest obstruction from the present location.
+  
+  Besides, we are also considering another similar alternative
+  - Name : VL53L1X
+  - Type : ToF sensor
+  - Communication : I2C, through PCA9548A
+  - Range & Blind spots: upto 400cm & 4cm
+  - Purpose : Calculate distance of the closest obstruction from the present location.
+  The main reason being that this sensor can sample data @ 50Hz, which is a good feature if we want to operate the car in high velocity without reducing accuracy.
+  
+  
 
 ---
 
 ## X. Board Specifications (To be updated)
 
 - **Mainboard:**
-  - Processor: Model TBD
+  - Processor: 01Studios Kendryte K230
   - OS: RT-Smart RTOS
   - Communication: I2C Master, UART Debug
   - Interfaces: PWM, GPIO, USB
 
 - **Sensor Hub:**
-  - MCU: Model TBD
-  - I2C Multiplexer: PCA9548a 
-  - Clock: TBD
-  - Firmware Lang: C
+  - Board: Waveshare ESP32-S3 Pico
+  - I2C Multiplexer: PCA9548a
+  - Firmware SDK: ESP-IDF.
   - I2C Slave Address: 0x10
   - Ports: GPIO (Ultrasonic), I2C (ToF, RGB)
   - Connection: Mainboard I2C -> Sensor Hub I2C -> Hub's Multiplexer -> Sensor's SDA/SCL pins.
