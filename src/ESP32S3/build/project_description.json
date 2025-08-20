@@ -1,7 +1,7 @@
 {
     "version":            "1.2",
     "project_name":       "WRO-FE-2025",
-    "project_version":    "d79d17f",
+    "project_version":    "1e780ce-dirty",
     "project_path":       "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3",
     "idf_path":           "/home/alif-ilhan/esp/v5.5/esp-idf",
     "build_dir":          "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build",
