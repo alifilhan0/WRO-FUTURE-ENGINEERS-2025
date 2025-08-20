@@ -1,51 +1,41 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C5 | ESP32-C6 | ESP32-C61 | ESP32-H2 | ESP32-H21 | ESP32-P4 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | --------- | -------- | --------- | -------- | -------- | -------- |
+# ESP32S3 Sensor hub.
 
-# Basic I2C Master Example
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+This is the firmware source code for the ESP32s3 board in our system responsible for offloading various tasks from the mainboard, for example taking care of handling data from the sensors. We made it a bit differently, so that this device is can be communicated with defined commands, much akin to a prompt.As of now, the commands are integers 1 to 16 accesses the respective index of the sensor data storage buffer `rx_buffer[]`, and the required data is sent.  This approach was chosen to keep the board versatile, adaptive, and change/testing friendly because we needed to update the sensors or the design of the car. Note that this project is still in development and we need to organize the code for better reliability.
+---
 
-## Overview
+## How does it work?
 
-This example demonstrates basic usage of I2C driver by reading and writing from a I2C connected sensor:
+We made the ESP32s3 act as a master for the sensors, which collect the data and ESP32s3 board calculates the distance in this project. The project uses [tca9548](https://github.com/esp-idf-lib/tca9548) I2C multiplexer to add additional ports for sensors with same/similar behavior and same addresses. Commands 1 to 4 mean `VL53L0X` sensor's distance measurement from 1,2,3,4 meaning right front left back respectively. commands 11 to 15 are mirrored in the same way for `VL53L1X`. 
 
-If you have a new I2C application to go (for example, read the temperature data from external sensor with I2C interface), try this as a basic template, then add your own code.
+Now, one might ask why did we do this? It is because we originally started with VL53L0X and we were pretty much okay with it. But VL53L1X's feature of sampling distances @50Hz was quite a compelling feature to us to the project if we wanted to increase the car's speed without sacrificing the accuracy of the distance measurement thus achieving a more reliable and safe system even at faster speeds.
 
-## How to use example
+In addition to ToF sensors for distance measurement, we did the same with Ultrasonic sensors, however they are not connected through I2C, rather they are connected through PWM to the ESP32s3 board. We decided to adventure with different sensors, and ultrasonic sensors have long been used for the purpose. We used the [esp-idf-lib ultrasonic sensor](https://github.com/esp-idf-lib/ultrasonic) library for this because the library had the temperature compensated distance measurement function `ultrasonic_measure_cm_temp_compensated`.
 
-### Hardware Required
+The ToF libraries were take from 
+    1. [ESP32-VL53L0X](https://github.com/revk/ESP32-VL53L0X)
+    2. [ESP32-VL53L1X](https://github.com/revk/ESP32-VL53L1X)
+    
+Distance data acquired from ToFs are in millimeters and for ultrasonic sensors, as the function suggests, returns the data in centimeters. This data is directly transferred to the main board via the I2C bus based on the received command.
 
-To run this example, you should have an Espressif development board based on a chip listed in supported targets as well as a MPU9250. MPU9250 is a inertial measurement unit, which contains a accelerometer, gyroscope as well as a magnetometer, for more information about it, you can read the [datasheet of the MPU9250 sensor](https://invensense.tdk.com/wp-content/uploads/2015/02/PS-MPU-9250A-01-v1.1.pdf).
+Moreover, we have added the [TCS34725](https://github.com/tcs34725) RGB sensor for counting the laps in the path for the challenge. We are conflicted on deciding if this simple task of counting laps be left to be done by this sensor hub or by the main board as the RGB data needs to be processed and match with the track's color lines present in different locations to decide when a lap is completed. Preferring to make the lap calculation in the mainboard for now, subject to change later.
+---
 
-#### Pin Assignment
+## A bit of description about the task handling
+Since the system is supposed to be mostly in motion, it is important to have the latest data in the shortest intervals. However doing them in a regular, simple and streamlined flow might make the whole process slower than it needs to be. Hence, we went with the FreeRTOS build of ESP32s3 firmware. It allows us to run multiple tasks at once, and we are running two such tasks. One is `sensor_task` which continuously samples data from the sensor and handles the calculation. And another task, `slave_task` waits for a command in it's I2C slave port. Once a command is received, data of that instant is sent to the master.
 
-**Note:** The following pin assignments are used by default, you can change these in the `menuconfig` .
+We are currently working on a STOP command, which will make the mainboard terminate every process once the required number of laps is complete.
+---
 
-|                  | SDA             | SCL           |
-| ---------------- | -------------- | -------------- |
-| ESP I2C Master   | I2C_MASTER_SDA | I2C_MASTER_SCL |
-| MPU9250 Sensor   | SDA            | SCL            |
+## How to work with the code?
+We tried to make the main base of the firmware source to be modular and potentially integrate with many other projects, afterall main goal of this board was to be a flexible, adaptive and configurable sensor expansion board. So it is possible to integrate the source with any other projects as long as it is based on ESP-IDF
 
-For the actual default value of `I2C_MASTER_SDA` and `I2C_MASTER_SCL` see `Example Configuration` in `menuconfig`.
-
-**Note:** There's no need to add an external pull-up resistors for SDA/SCL pin, because the driver will enable the internal pull-up resistors.
-
-### Build and Flash
-
-Enter `idf.py -p PORT flash monitor` to build, flash and monitor the project.
-
-(To exit the serial monitor, type ``Ctrl-]``.)
-
-See the [Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html) for full steps to configure and use ESP-IDF to build projects.
-
-## Example Output
-
-```bash
-I (328) example: I2C initialized successfully
-I (338) example: WHO_AM_I = 71
-I (338) example: I2C de-initialized successfully
-```
-
-## Troubleshooting
-
-(For any technical queries, please open an [issue](https://github.com/espressif/esp-idf/issues) on GitHub. We will get back to you as soon as possible.)
+For requirements, please check out the dependencies for ESP-IDF installation. Here is a step by step guide for beginners to work with the firmware:-
+    1. Install ESP-IDF and its dependencies from the official espressif site. Alternatively, esp-idf extension for VSCode is also available. Make sure the dependencies are available in your system before you install the VSCode extension.
+    2. After installation, clone UncleRus's esp-idf-lib repo somewhere for the `tca9548`, `ultrasonic sensors`, `tcs34725`. Follow the repo for installation instructions and how to integrate the extra components into the esp-idf project
+    3. Make sure to close the default bash prompt of VSCode if you are using the VSCode extension method. Open ESP-IDF terminal from the bottom, it should look like a console icon.
+    4. From there run `idf.py menuconfig` Do not change anything, save it by clicking S and Esc and press Q to quit.
+    5. The build environment for the project should be ready. run idf.py build for building the firmware, followed by idf.py -p PORT flash to flash it to your ESP32S3. Replace port with the actual port where the ESP32S3 is connected.
+    6. Ready to test and tinker!
+-
+*Team Barakah Brigade, 2025*
