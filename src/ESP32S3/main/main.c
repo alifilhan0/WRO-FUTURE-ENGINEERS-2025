@@ -181,6 +181,6 @@ void app_main(void)
     i2c_slave_init();
     sensor_init();
     // Start background tasks
-    xTaskCreate(slave_task,  "sensor_task",  4096, NULL, 5, NULL);
+    xTaskCreate(sensor_task,  "sensor_task",  4096, NULL, 5, NULL);
     xTaskCreate(slave_task,  "slave_task",  4096, NULL, 5, NULL);
 }
