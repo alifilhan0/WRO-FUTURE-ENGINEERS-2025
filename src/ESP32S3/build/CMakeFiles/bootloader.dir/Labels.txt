@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/CMakeFiles/bootloader
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/CMakeFiles/bootloader.rule
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/CMakeFiles/bootloader-complete.rule
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule

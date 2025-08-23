@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/CMakeFiles/bootloader"
+		},
+		{
+			"file" : "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/CMakeFiles/bootloader.rule"
+		},
+		{
+			"file" : "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/CMakeFiles/bootloader-complete.rule"
+		},
+		{
+			"file" : "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule"
+		},
+		{
+			"file" : "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule"
+		},
+		{
+			"file" : "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule"
+		},
+		{
+			"file" : "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule"
+		},
+		{
+			"file" : "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule"
+		},
+		{
+			"file" : "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule"
+		},
+		{
+			"file" : "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"bootloader"
+		],
+		"name" : "bootloader"
+	}
+}

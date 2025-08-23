@@ -1,7 +1,7 @@
 # ESP32S3 Sensor hub.
 
-
 This is the firmware source code for the ESP32s3 board in our system responsible for offloading various tasks from the mainboard, for example taking care of handling data from the sensors. We made it a bit differently, so that this device is can be communicated with defined commands, much akin to a prompt.As of now, the commands are integers 1 to 16 accesses the respective index of the sensor data storage buffer `rx_buffer[]`, and the required data is sent.  This approach was chosen to keep the board versatile, adaptive, and change/testing friendly because we needed to update the sensors or the design of the car. Note that this project is still in development and we need to organize the code for better reliability.
+
 ---
 
 ## How does it work?
@@ -19,15 +19,19 @@ The ToF libraries were take from
 Distance data acquired from ToFs are in millimeters and for ultrasonic sensors, as the function suggests, returns the data in centimeters. This data is directly transferred to the main board via the I2C bus based on the received command.
 
 Moreover, we have added the [TCS34725](https://github.com/tcs34725) RGB sensor for counting the laps in the path for the challenge. We are conflicted on deciding if this simple task of counting laps be left to be done by this sensor hub or by the main board as the RGB data needs to be processed and match with the track's color lines present in different locations to decide when a lap is completed. Preferring to make the lap calculation in the mainboard for now, subject to change later.
+
 ---
 
 ## A bit of description about the task handling
+
 Since the system is supposed to be mostly in motion, it is important to have the latest data in the shortest intervals. However doing them in a regular, simple and streamlined flow might make the whole process slower than it needs to be. Hence, we went with the FreeRTOS build of ESP32s3 firmware. It allows us to run multiple tasks at once, and we are running two such tasks. One is `sensor_task` which continuously samples data from the sensor and handles the calculation. And another task, `slave_task` waits for a command in it's I2C slave port. Once a command is received, data of that instant is sent to the master.
 
 We are currently working on a STOP command, which will make the mainboard terminate every process once the required number of laps is complete.
+
 ---
 
 ## How to work with the code?
+
 We tried to make the main base of the firmware source to be modular and potentially integrate with many other projects, afterall main goal of this board was to be a flexible, adaptive and configurable sensor expansion board. So it is possible to integrate the source with any other projects as long as it is based on ESP-IDF
 
 For requirements, please check out the dependencies for ESP-IDF installation. Here is a step by step guide for beginners to work with the firmware:-

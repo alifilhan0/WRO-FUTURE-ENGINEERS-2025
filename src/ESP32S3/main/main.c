@@ -136,13 +136,15 @@ static void sensor_task(void *arg)
 {
     
    uint32_t distance;
-   int i; 
+   int i;
+   int temp; 
     while (1) {
        
         for(i = 0; i < 4; i++)
         {
             tca9548_set_channels(dev, i);
-            rx_buffer[i] = vl53l0x_readRangeContinuousMillimeters(vl53l0x[i]);
+            temp = vl53l0x_readRangeContinuousMillimeters(vl53l0x[i]);
+            rx_buffer[i] = temp/10; //Convert into centimeters
         }
         for(i = 0; i < MAX_ULTRASONIC_SENSOR_NUM; i++)
         {
