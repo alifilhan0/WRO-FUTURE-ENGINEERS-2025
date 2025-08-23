@@ -36,10 +36,15 @@ We tried to make the main base of the firmware source to be modular and potentia
 
 For requirements, please check out the dependencies for ESP-IDF installation. Here is a step by step guide for beginners to work with the firmware:-
     1. Install ESP-IDF and its dependencies from the official espressif site. Alternatively, esp-idf extension for VSCode is also available. Make sure the dependencies are available in your system before you install the VSCode extension.
-    2. After installation, clone UncleRus's esp-idf-lib repo somewhere for the `tca9548`, `ultrasonic sensors`, `tcs34725`. Follow the repo for installation instructions and how to integrate the extra components into the esp-idf project
+
+    2. After installation, clone UncleRus's esp-idf-lib repo somewhere for the `tca9548`, `ultrasonic sensors`, `tcs34725`. Follow the repo for installation instructions and how to integrate the extra components into the esp-idf project.
+
     3. Make sure to close the default bash prompt of VSCode if you are using the VSCode extension method. Open ESP-IDF terminal from the bottom, it should look like a console icon.
+
     4. From there run `idf.py menuconfig` Do not change anything, save it by clicking S and Esc and press Q to quit.
+
     5. The build environment for the project should be ready. run idf.py build for building the firmware, followed by idf.py -p PORT flash to flash it to your ESP32S3. Replace port with the actual port where the ESP32S3 is connected.
+    
     6. Ready to test and tinker!
 
 ---
