@@ -41,5 +41,6 @@ For requirements, please check out the dependencies for ESP-IDF installation. He
     4. From there run `idf.py menuconfig` Do not change anything, save it by clicking S and Esc and press Q to quit.
     5. The build environment for the project should be ready. run idf.py build for building the firmware, followed by idf.py -p PORT flash to flash it to your ESP32S3. Replace port with the actual port where the ESP32S3 is connected.
     6. Ready to test and tinker!
--
+
+---
 *Team Barakah Brigade, 2025*
