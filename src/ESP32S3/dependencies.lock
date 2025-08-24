@@ -87,6 +87,16 @@ dependencies:
     - esp32s2
     - esp32s3
     version: 1.0.7
+  espressif/mpu6050:
+    component_hash: d69219ccb141372b863c511749ffbeab28417ac71c205d7ed7030c308e1b6832
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.2.0
   idf:
     source:
       type: idf
@@ -94,7 +104,8 @@ dependencies:
 direct_dependencies:
 - esp-idf-lib/tca9548
 - esp-idf-lib/ultrasonic
+- espressif/mpu6050
 - idf
-manifest_hash: 79ec359d1ed5e0f6fa0a4cd0abf8ff1707366b2b703fdc059517cfc874b6ef98
+manifest_hash: df0651e3f9192968896a5d48f92b4ae53dd56498739c0b591439ec8585d85cc3
 target: esp32s3
 version: 2.0.0

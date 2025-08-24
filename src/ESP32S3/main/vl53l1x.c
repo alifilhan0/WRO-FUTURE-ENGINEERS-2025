@@ -1465,12 +1465,16 @@ static esp_err_t Done(vl53l1x_t * v, i2c_cmd_handle_t i)
 
 static i2c_cmd_handle_t Read(vl53l1x_t * v, uint16_t reg)
 {                               // Set up for read
+
    i2c_cmd_handle_t i = i2c_cmd_link_create();
+
    i2c_master_start(i);
    i2c_master_write_byte(i, (v->address << 1), 1);
    i2c_master_write_byte(i, reg >> 8, 1);
    i2c_master_write_byte(i, reg, 1);
+
    Done(v, i);
+   //ESP_LOGI(TAG, "Done started");
    i = i2c_cmd_link_create();
    i2c_master_start(i);
    i2c_master_write_byte(i, (v->address << 1) + 1, 1);
@@ -1492,7 +1496,7 @@ void vl53l1x_writeReg(vl53l1x_t * v, uint16_t reg, uint8_t val)
    i2c_cmd_handle_t i = Write(v, reg);
    i2c_master_write_byte(i, val, 1);
    v->err = Done(v, i);
-   VL53L1X_LOG(TAG, "W %04X=%02X %s", reg, val, esp_err_to_name(v->err));
+   //VL53L1X_LOG(TAG, "W %04X=%02X %s", reg, val, esp_err_to_name(v->err));
 }
 
 void vl53l1x_writeReg16Bit(vl53l1x_t * v, uint16_t reg, uint16_t val)
@@ -1501,7 +1505,7 @@ void vl53l1x_writeReg16Bit(vl53l1x_t * v, uint16_t reg, uint16_t val)
    i2c_master_write_byte(i, val >> 8, 1);
    i2c_master_write_byte(i, val, 1);
    v->err = Done(v, i);
-   VL53L1X_LOG(TAG, "W %04X=%04X %s", reg, val, esp_err_to_name(v->err));
+   //VL53L1X_LOG(TAG, "W %04X=%04X %s", reg, val, esp_err_to_name(v->err));
 }
 
 void vl53l1x_writeReg32Bit(vl53l1x_t * v, uint16_t reg, uint32_t val)
@@ -1512,7 +1516,7 @@ void vl53l1x_writeReg32Bit(vl53l1x_t * v, uint16_t reg, uint32_t val)
    i2c_master_write_byte(i, val >> 8, 1);
    i2c_master_write_byte(i, val, 1);
    v->err = Done(v, i);
-   VL53L1X_LOG(TAG, "W %04X=%08lX %s", reg, val, esp_err_to_name(v->err));
+   //VL53L1X_LOG(TAG, "W %04X=%08lX %s", reg, val, esp_err_to_name(v->err));
 }
 
 uint8_t vl53l1x_readReg(vl53l1x_t * v, uint16_t reg)
@@ -1521,7 +1525,7 @@ uint8_t vl53l1x_readReg(vl53l1x_t * v, uint16_t reg)
    i2c_cmd_handle_t i = Read(v, reg);
    i2c_master_read_byte(i, buf + 0, I2C_MASTER_LAST_NACK);
    v->err = Done(v, i);
-   VL53L1X_LOG(TAG, "R %04X=%02X %s", reg, buf[0], esp_err_to_name(v->err));
+   //VL53L1X_LOG(TAG, "R %04X=%02X %s", reg, buf[0], esp_err_to_name(v->err));
    return buf[0];
 }
 
@@ -1532,7 +1536,7 @@ uint16_t vl53l1x_readReg16Bit(vl53l1x_t * v, uint16_t reg)
    i2c_master_read_byte(i, buf + 0, I2C_MASTER_ACK);
    i2c_master_read_byte(i, buf + 1, I2C_MASTER_LAST_NACK);
    v->err = Done(v, i);
-   VL53L1X_LOG(TAG, "R %04X=%02X%02X %s", reg, buf[0], buf[1], esp_err_to_name(v->err));
+  // VL53L1X_LOG(TAG, "R %04X=%02X%02X %s", reg, buf[0], buf[1], esp_err_to_name(v->err));
    return (buf[0] << 8) + buf[1];
 }
 
@@ -1545,7 +1549,7 @@ uint32_t vl53l1x_readReg32Bit(vl53l1x_t * v, uint16_t reg)
    i2c_master_read_byte(i, buf + 2, I2C_MASTER_ACK);
    i2c_master_read_byte(i, buf + 3, I2C_MASTER_LAST_NACK);
    v->err = Done(v, i);
-   VL53L1X_LOG(TAG, "R %04X=%02X%02X%02X%02X %s", reg, buf[0], buf[1], buf[2], buf[3], esp_err_to_name(v->err));
+   //VL53L1X_LOG(TAG, "R %04X=%02X%02X%02X%02X %s", reg, buf[0], buf[1], buf[2], buf[3], esp_err_to_name(v->err));
    return (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
 }
 
@@ -1560,7 +1564,7 @@ void vl53l1x_readMulti(vl53l1x_t * v, uint16_t reg, uint8_t * dst, uint8_t count
       i2c_master_read(i, dst + 0, count - 1, I2C_MASTER_ACK);
    i2c_master_read_byte(i, dst + count - 1, I2C_MASTER_LAST_NACK);
    v->err = Done(v, i);
-   VL53L1X_LOG(TAG, "R %04X (%d) %s", reg, count, esp_err_to_name(v->err));
+   //VL53L1X_LOG(TAG, "R %04X (%d) %s", reg, count, esp_err_to_name(v->err));
 }
 
 // Write an arbitrary number of bytes from the given array to the sensor,
@@ -1570,7 +1574,7 @@ void vl53l1x_writeMulti(vl53l1x_t * v, uint16_t reg, uint8_t const *src, uint8_t
    i2c_cmd_handle_t i = Write(v, reg);
    i2c_master_write(i, (uint8_t *) src, count, 1);
    v->err = Done(v, i);
-   VL53L1X_LOG(TAG, "W %04X (%d) %s", reg, count, esp_err_to_name(v->err));
+   //VL53L1X_LOG(TAG, "W %04X (%d) %s", reg, count, esp_err_to_name(v->err));
 }
 
 vl53l1x_t *vl53l1x_config(int8_t port, int8_t scl, int8_t sda, int8_t xshut, uint8_t address, uint8_t io_2v8)
@@ -1579,8 +1583,8 @@ vl53l1x_t *vl53l1x_config(int8_t port, int8_t scl, int8_t sda, int8_t xshut, uin
       return NULL;
    if (!GPIO_IS_VALID_OUTPUT_GPIO(scl) || !GPIO_IS_VALID_OUTPUT_GPIO(sda) || (xshut >= 0 && !GPIO_IS_VALID_OUTPUT_GPIO(xshut)))
       return 0;
-   if (i2c_driver_install(port, I2C_MODE_MASTER, 0, 0, 0))
-      return NULL;              // Uh?
+   //if (i2c_driver_install(port, I2C_MODE_MASTER, 0, 0, 0))
+     // return NULL;              // Uh?
    i2c_config_t config = {
       .mode = I2C_MODE_MASTER,
       .sda_io_num = sda,

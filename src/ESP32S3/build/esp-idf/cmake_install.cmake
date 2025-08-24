@@ -584,6 +584,11 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/main/cmake_install.cmake")
 endif()
 
@@ -865,11 +870,6 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
   include("/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mp2660/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)

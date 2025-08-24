@@ -14,175 +14,236 @@
  **********************************************************************************/
 
 #include <stdio.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/i2c.h"
-#include "esp_log.h"
-#include "vl53l0x.h"
-#include "vl53l1x.h"
-#include "ultrasonic.h"
-#include "tcs34725.h"
-#include "tca9548.h"
-#define TAG "MAIN"
+#include <string.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <esp_system.h>
+#include <driver/i2c.h>
+#include <tca9548.h>
+#include <vl53l1x.h>
+#include <ultrasonic.h>
+#include "driver/uart.h"
+#include "string.h"
+#include "driver/gpio.h"
+#include "driver/mcpwm.h"
+#define MAX_DISTANCE_CM 500
 
-// Master side (ESP32 -> TCA9548 + sensors)
-#define I2C_MASTER_NUM I2C_NUM_0
-#define I2C_MASTER_SCL_IO 18
-#define I2C_MASTER_SDA_IO 17
-#define I2C_MASTER_FREQ_HZ 400000
+// Ultrasonic pins
+#define TRIGGER_GPIO1 36
+#define ECHO_GPIO1 35
+#define TRIGGER_GPIO2 33
+#define ECHO_GPIO2 17
+#define TRIGGER_GPIO3 34
+#define ECHO_GPIO3 18
 
-// Slave side (ESP32 <- external board)
+// I2C slave pins & address
+#define I2C_SLAVE_SDA 13
+#define I2C_SLAVE_SCL 14
+#define I2C_SLAVE_ADDRESS 0x12
 #define I2C_SLAVE_NUM I2C_NUM_1
-#define I2C_SLAVE_SCL_IO 10
-#define I2C_SLAVE_SDA_IO 11
-#define I2C_SLAVE_ADDRESS 0x28
-#define I2C_SLAVE_RX_BUF_LEN 128
-#define I2C_SLAVE_TX_BUF_LEN 128
+#define I2C_SLAVE_RX_BUF_LEN 64
+#define I2C_SLAVE_TX_BUF_LEN 64
 
-#define MAX_ULTRASONIC_SENSOR_NUM 4
-#define MAX_TOF_NUM 4
-#define RGB_CHANNEL 8
-#define SECOND_MUX 0
+// Global buffers for sensor data
+static uint16_t vl53_distances[4] = {0};
+static float ultra_distances[3] = {0.0f};
 
-//Sensor descriptors and configurations
-static vl53l0x_t *vl53l0x[MAX_TOF_NUM];
-static ESP32_TCS34725 *tcs34725;
-static vl53l1x_t *vl53l1x[MAX_TOF_NUM];
+// TCA9548 and VL53L1X
+static vl53l1x_t *vl53l1x_arr[4];
+static i2c_dev_t i2c_switch = {0};
 
-static ultrasonic_sensor_t ultra[MAX_ULTRASONIC_SENSOR_NUM] = {
-    { .trigger_pin = GPIO_NUM_1, .echo_pin = GPIO_NUM_11 },
-    { .trigger_pin = GPIO_NUM_2, .echo_pin = GPIO_NUM_12 },
-    { .trigger_pin = GPIO_NUM_3, .echo_pin = GPIO_NUM_13 },
-    { .trigger_pin = GPIO_NUM_4, .echo_pin = GPIO_NUM_14 },
+// Ultrasonic sensors
+ultrasonic_sensor_t sensor1 = { .trigger_pin = TRIGGER_GPIO1, .echo_pin = ECHO_GPIO1 };
+ultrasonic_sensor_t sensor2 = { .trigger_pin = TRIGGER_GPIO2, .echo_pin = ECHO_GPIO2 };
+ultrasonic_sensor_t sensor3 = { .trigger_pin = TRIGGER_GPIO3, .echo_pin = ECHO_GPIO3 };
+static const int RX_BUF_SIZE = 1024;
 
-};
+#define TXD_PIN (13)
+#define RXD_PIN (14)
 
-uint8_t tx_buffer;
-uint32_t rx_buffer[16];
-/* This rx_buffer is suppposed to store sensor data and will be sent back to master board.
-    rx_buffer[0] - rx_buffer[3] will have ToF sensor data from right to behind in clockwise order
-    rx_buffer[4] - rx_buffer[7] will have data read from ultrasonic sensors
-    rx_buffer[8] - rx_buffer[10] will have red, green and blue respectiively data read from tcs34725 rgb sensor.
-    rx_buffer[9] - rx_buffer[15] is reserved for flexible adaptation for alternative sensor debugging without 
-    dropping any current sensor
-*/
-i2c_dev_t *dev;
-static void i2c_master_init(void)
+#define MOTOR_PWM_UNIT MCPWM_UNIT_0
+#define MOTOR_TIMER MCPWM_TIMER_0
+#define MOTOR_GEN_A MCPWM_OPR_A
+#define MOTOR_GEN_B MCPWM_OPR_B
+#define PWM_FREQ_HZ 1000
+
+#define DIR_A1 9
+#define DIR_A2 38
+#define PWM_A 37
+#define STBY 33
+// ================= Sensor Task =================
+void sensor_task(void *pvParameters)
 {
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = I2C_MASTER_SDA_IO,
-        .scl_io_num = I2C_MASTER_SCL_IO,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_MASTER_FREQ_HZ,
-    };
-    ESP_ERROR_CHECK(i2c_param_config(I2C_MASTER_NUM, &conf));
-    ESP_ERROR_CHECK(i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0));
-}
+    esp_err_t res;
+    float distance;
 
-static void i2c_slave_init(void)
-{
-    i2c_config_t conf_slave = {
-        .mode = I2C_MODE_SLAVE,
-        .sda_io_num = I2C_SLAVE_SDA_IO,
-        .scl_io_num = I2C_SLAVE_SCL_IO,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .slave.addr_10bit_en = 0,
-        .slave.slave_addr = I2C_SLAVE_ADDRESS,
-    };
-    ESP_ERROR_CHECK(i2c_param_config(I2C_SLAVE_NUM, &conf_slave));
-    ESP_ERROR_CHECK(i2c_driver_install(I2C_SLAVE_NUM, conf_slave.mode,
-                                       I2C_SLAVE_RX_BUF_LEN, I2C_SLAVE_TX_BUF_LEN, 0));
-}
-
-void sensor_init()
-{
-    int i=0;
-    
-    for(i = 0; i < MAX_TOF_NUM; i++)
-    {
-        tca9548_set_channels(dev, i);
-        vl53l0x[i] = vl53l0x_config(I2C_MASTER_NUM, I2C_MASTER_SCL_IO, I2C_MASTER_SDA_IO, -1, 0x29 + i, 00);
-        vl53l0x_init(vl53l0x[i]);
-        vl53l0x_stopContinuous(vl53l0x[i]);
-        vl53l0x_startContinuous(vl53l0x[i], 20000);
-        
-    }
-
-    for(i = 0; i < MAX_ULTRASONIC_SENSOR_NUM; i++)
-    {
-        ultrasonic_init(&ultra[i]);
-
-    }
-
-    
-    for(i = 0; i < MAX_TOF_NUM; i++)
-    {
-        tca9548_set_channels(dev, 4 + i);
-        vl53l1x[i] = vl53l1x_config(I2C_MASTER_NUM, I2C_MASTER_SCL_IO, I2C_MASTER_SDA_IO, -1, 0x29 + i, 00);
-        vl53l1x_init(vl53l1x[i]);
-        vl53l1x_stopContinuous(vl53l1x[i]);
-        vl53l1x_startContinuous(vl53l1x[i], 20000);
-        
-    }
-
-    TCS_init(tcs34725, I2C_MASTER_NUM);
-
-}
-
-static void sensor_task(void *arg)
-{
-    
-   uint32_t distance;
-   int i;
-   int temp; 
-    while (1) {
-       
-        for(i = 0; i < 4; i++)
-        {
-            tca9548_set_channels(dev, i);
-            temp = vl53l0x_readRangeContinuousMillimeters(vl53l0x[i]);
-            rx_buffer[i] = temp/10; //Convert into centimeters
-        }
-        for(i = 0; i < MAX_ULTRASONIC_SENSOR_NUM; i++)
-        {
-            ultrasonic_measure_cm_temp_compensated(&ultra[i], 4, &distance, 25);
-            rx_buffer[4 + i] = distance;
-        }
-        TCS_getRGB(tcs34725, (float *)rx_buffer[8], (float *)rx_buffer[9], (float *)rx_buffer[10]);
-        for(i = 0; i < 4; i++)
-        {
-            tca9548_set_channels(dev, 4 + i);
-            rx_buffer[11 + i] = vl53l1x_readSingle(vl53l1x[i], 1);
-        }
-    }
-}
-
-
-static void slave_task(void *arg)
-{
-    int data;
     while(1)
     {
-        // Check if master sent a request
-        int len = i2c_slave_read_buffer(I2C_SLAVE_NUM, &tx_buffer, sizeof(tx_buffer), 10 / portTICK_PERIOD_MS);
+        // ---- Ultrasonics ----
+        res = ultrasonic_measure(&sensor1, MAX_DISTANCE_CM, &distance);
+        ultra_distances[0] = distance;
 
-        if(len > 0)
-        {
-            data = rx_buffer[tx_buffer];
-            i2c_slave_write_buffer(I2C_SLAVE_NUM, (uint8_t *)data, sizeof(rx_buffer), 10 / portTICK_PERIOD_MS);
+        res = ultrasonic_measure(&sensor2, MAX_DISTANCE_CM, &distance);
+        ultra_distances[1] = distance;
+
+        res = ultrasonic_measure(&sensor3, MAX_DISTANCE_CM, &distance);
+        ultra_distances[2] = distance;
+
+        // ---- VL53L1X ----
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(0)));
+        vl53_distances[0] = vl53l1x_readSingle(vl53l1x_arr[0], 1);
+
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(2)));
+        vl53_distances[1] = vl53l1x_readSingle(vl53l1x_arr[1], 1);
+
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(4)));
+        vl53_distances[2] = vl53l1x_readSingle(vl53l1x_arr[2], 1);
+
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(7)));
+        vl53_distances[3] = vl53l1x_readSingle(vl53l1x_arr[3], 1);
+
+    }
+}
+
+void init(void)
+{
+    const uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+    // We won't use a buffer for sending data.
+    uart_driver_install(UART_NUM_1, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
+    uart_param_config(UART_NUM_1, &uart_config);
+    uart_set_pin(UART_NUM_1, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+}
+void motor_init() {
+    // Direction pins
+    gpio_set_direction(DIR_A1, GPIO_MODE_OUTPUT);
+    gpio_set_direction(DIR_A2, GPIO_MODE_OUTPUT);
+    // Standby pin
+    gpio_set_direction(STBY, GPIO_MODE_OUTPUT);
+    gpio_set_level(STBY, 1); // enable driver
+
+    // PWM pin
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, PWM_A);
+
+    mcpwm_config_t pwm_config = {
+        .frequency = 1000,
+        .cmpr_a = 0,
+        .cmpr_b = 0,
+        .counter_mode = MCPWM_UP_COUNTER,
+        .duty_mode = MCPWM_DUTY_MODE_0
+    };
+    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
+}
+
+// speed_percent: 0-100, direction: 1=forward, 0=reverse
+void motor_set(int speed_percent, int direction) {
+    if(direction == 1 && speed_percent != 0) {
+        gpio_set_level(DIR_A1, 1);
+        gpio_set_level(DIR_A2, 0);
+    } else if(direction == 0 && speed_percent != 0) {
+        gpio_set_level(DIR_A1, 0);
+        gpio_set_level(DIR_A2, 1);
+    } else if(direction == 0 && speed_percent == 0) {
+        gpio_set_level(DIR_A1, 0);
+        gpio_set_level(DIR_A2, 0);
+    }
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, speed_percent);
+    printf("Motor speed %d%%, direction %d\n", speed_percent, direction);
+    vTaskDelay(pdMS_TO_TICKS(10));
+}
+
+// Handle received UART commands
+void handle_command(char* cmd) {
+    char response[64];
+    if (strncmp(cmd, "TOFLeft", 7) == 0) {
+        int tof = vl53_distances[3];
+        snprintf(response, sizeof(response), "TOFLeft:%d\n", tof);
+    } else if (strncmp(cmd, "TOFRight", 6) == 0) {
+        int us = vl53_distances[1];
+        snprintf(response, sizeof(response), "TOFRight:%d\n", us);
+    } else if (strncmp(cmd, "TOFBack", 6) == 0) {
+        int us = vl53_distances[0];
+        snprintf(response, sizeof(response), "TOFBack:%d\n", us);
+    } else if (strncmp(cmd, "TOFFront", 6) == 0) {
+        int us = vl53_distances[2];
+        snprintf(response, sizeof(response), "TOFFront:%d\n", us);
+    } else if (strncmp(cmd, "USLeft", 6) == 0) {
+        float us = ultra_distances[0];
+        snprintf(response, sizeof(response), "USLeft:%f\n", us);
+    } else if (strncmp(cmd, "USRight", 6) == 0) {
+        float us = ultra_distances[2];
+        snprintf(response, sizeof(response), "USRight:%f\n", us);
+    } else if (strncmp(cmd, "USFront", 6) == 0) {
+        float us = ultra_distances[1];
+        snprintf(response, sizeof(response), "USFront:%f\n", us);
+    } else if (strncmp(cmd, "FORWARD", 7) == 0) {
+        motor_set(100, 1);
+        snprintf(response, sizeof(response), "MOTOR:FORWARD\n");
+    } else if (strncmp(cmd, "BACKWARD", 8) == 0) {
+        motor_set(100, 0);
+        snprintf(response, sizeof(response), "MOTOR:BACKWARD\n");
+    } else if (strncmp(cmd, "STOP", 4) == 0) {
+        motor_set(0, 0);
+        snprintf(response, sizeof(response), "MOTOR:STOP\n");
+    } else {
+        snprintf(response, sizeof(response), "ERROR:UNKNOWN_CMD\n");
+    }
+    uart_write_bytes(UART_NUM_1, response, strlen(response));
+}
+
+
+void uart_slave_task(void *arg)
+{
+
+    char* data = (char*) malloc(RX_BUF_SIZE + 1);
+    while(1)
+    {
+        const int rxBytes = uart_read_bytes(UART_NUM_1, data, RX_BUF_SIZE, 10 / portTICK_PERIOD_MS);
+        if (rxBytes > 0) {
+            data[rxBytes] = 0;
+            handle_command(data);
         }
     }
-
 }
-void app_main(void)
+
+// ================= I2C Slave Init =================
+// ================= Main =================
+void app_main()
 {
-    i2c_master_init();
-    i2c_slave_init();
-    sensor_init();
-    // Start background tasks
-    xTaskCreate(sensor_task,  "sensor_task",  4096, NULL, 5, NULL);
-    xTaskCreate(slave_task,  "slave_task",  4096, NULL, 5, NULL);
+    ESP_ERROR_CHECK(i2cdev_init());
+
+    // ---- Initialize TCA9548 ----
+    ESP_ERROR_CHECK(tca9548_init_desc(&i2c_switch, 0x70, 0, CONFIG_I2C_MASTER_SDA, CONFIG_I2C_MASTER_SCL));
+
+    // ---- Initialize VL53L1X ----
+    for(int i=0;i<4;i++){
+        vl53l1x_arr[i] = vl53l1x_config(0, CONFIG_I2C_MASTER_SCL, CONFIG_I2C_MASTER_SDA, -1, 0x29, 0);
+    }
+
+    // Start each sensor on different TCA channels
+    const uint8_t channels[4] = {0,2,4,7};
+    for(int i=0;i<4;i++){
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(channels[i])));
+        vl53l1x_init(vl53l1x_arr[i]);
+        vl53l1x_setROISize(vl53l1x_arr[i], 18, 15);
+        vl53l1x_stopContinuous(vl53l1x_arr[i]);
+        vl53l1x_startContinuous(vl53l1x_arr[i], 20000);
+    }
+
+    // ---- Initialize Ultrasonic ----
+    ultrasonic_init(&sensor1);
+    ultrasonic_init(&sensor2);
+    ultrasonic_init(&sensor3);
+
+    // ---- Start Tasks ----
+    init();
+    motor_init();
+    xTaskCreatePinnedToCore(uart_slave_task, "uart_slave_task", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL, 0);
+    xTaskCreatePinnedToCore(sensor_task, "sensor_task", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL, 1);
 }

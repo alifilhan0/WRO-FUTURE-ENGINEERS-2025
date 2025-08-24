@@ -1,7 +1,7 @@
 {
     "version":            "1.2",
     "project_name":       "WRO-FE-2025",
-    "project_version":    "4ad8c56-dirty",
+    "project_version":    "a22f685-dirty",
     "project_path":       "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3",
     "idf_path":           "/home/alif-ilhan/esp/v5.5/esp-idf",
     "build_dir":          "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build",
@@ -1600,7 +1600,7 @@
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/i2cdev/libi2cdev.a",
-            "sources": [ "/home/alif-ilhan/Downloads/esp-idf-i2c-main/esp-idf-lib/components/i2cdev/i2cdev.c" ],
+            "sources": [ "/home/alif-ilhan/Downloads/esp-idf-i2c-main/esp-idf-lib/components/i2cdev/i2cdev_legacy.c" ],
             "include_dirs": [ "." ]
         },
         "icm42670": {
@@ -1881,9 +1881,9 @@
             "type": "LIBRARY",
             "lib": "__idf_main",
             "reqs": [],
-            "priv_reqs": [ "tca9548", "ultrasonic" ],
+            "priv_reqs": [ "tca9548", "ultrasonic", "mpu6050" ],
             "managed_reqs": [],
-            "managed_priv_reqs": [ "tca9548", "ultrasonic" ],
+            "managed_priv_reqs": [ "tca9548", "ultrasonic", "mpu6050" ],
             "file": "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/main/libmain.a",
             "sources": [ "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/main/main.c", "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/main/vl53l0x.c", "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/main/vl53l1x.c", "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/main/tcs34725.c" ],
             "include_dirs": [ "." ]
@@ -4363,9 +4363,9 @@
             "dir": "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/main",
             "lib": "__idf_main",
             "reqs": [],
-            "priv_reqs": [ "tca9548", "ultrasonic" ],
+            "priv_reqs": [ "tca9548", "ultrasonic", "mpu6050" ],
             "managed_reqs": [],
-            "managed_priv_reqs": [ "tca9548", "ultrasonic" ],
+            "managed_priv_reqs": [ "tca9548", "ultrasonic", "mpu6050" ],
             "include_dirs": [ "." ]
         },
         "ads111x": {
@@ -5562,6 +5562,18 @@
             "prefix": "idf",
             "dir": "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/managed_components/esp-idf-lib__ultrasonic",
             "lib": "__idf_esp-idf-lib__ultrasonic",
+            "reqs": [],
+            "priv_reqs": [],
+            "managed_reqs": [],
+            "managed_priv_reqs": [],
+            "include_dirs": []
+        },
+        "espressif__mpu6050": {
+            "alias": "idf::espressif__mpu6050",
+            "target": "___idf_espressif__mpu6050",
+            "prefix": "idf",
+            "dir": "/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/managed_components/espressif__mpu6050",
+            "lib": "__idf_espressif__mpu6050",
             "reqs": [],
             "priv_reqs": [],
             "managed_reqs": [],

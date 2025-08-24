@@ -9,7 +9,7 @@ static const char __attribute__((unused)) TAG[] = "ranger";
 #include <driver/i2c.h>
 
 #define TIMEOUT	(10/portTICK_PERIOD_MS) // I2C command timeout
-
+#define CONFIG_VL53L0X_DEBUG 1
 #ifdef	CONFIG_VL53L0X_DEBUG
 #define VL53L0X_LOG   ESP_LOGI        // Set to allow I2C logging
 #endif
@@ -626,8 +626,8 @@ vl53l0x_config (int8_t port, int8_t scl, int8_t sda, int8_t xshut, uint8_t addre
       return NULL;
    if (!GPIO_IS_VALID_OUTPUT_GPIO (scl) || !GPIO_IS_VALID_OUTPUT_GPIO (sda) || (xshut >= 0 && !GPIO_IS_VALID_OUTPUT_GPIO (xshut)))
       return 0;
-   if (i2c_driver_install (port, I2C_MODE_MASTER, 0, 0, 0))
-      return NULL;              // Uh?
+   //if (i2c_driver_install (port, I2C_MODE_MASTER, 0, 0, 0))
+     // return NULL;              // Uh?
    i2c_config_t config = {
       .mode = I2C_MODE_MASTER,
       .sda_io_num = sda,

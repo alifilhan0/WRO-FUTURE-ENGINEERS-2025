@@ -882,6 +882,13 @@
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/ultrasonic/CMakeFiles/install.dir
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/ultrasonic/CMakeFiles/install/local.dir
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/ultrasonic/CMakeFiles/install/strip.dir
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/__idf_mpu6050.dir
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/edit_cache.dir
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/rebuild_cache.dir
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/list_install_components.dir
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/install.dir
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/install/local.dir
+/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/install/strip.dir
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/main/CMakeFiles/__idf_main.dir
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/main/CMakeFiles/edit_cache.dir
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/main/CMakeFiles/rebuild_cache.dir
@@ -1281,13 +1288,6 @@
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mp2660/CMakeFiles/install.dir
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mp2660/CMakeFiles/install/local.dir
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mp2660/CMakeFiles/install/strip.dir
-/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/__idf_mpu6050.dir
-/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/edit_cache.dir
-/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/rebuild_cache.dir
-/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/list_install_components.dir
-/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/install.dir
-/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/install/local.dir
-/home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/mpu6050/CMakeFiles/install/strip.dir
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/ms5611/CMakeFiles/__idf_ms5611.dir
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/ms5611/CMakeFiles/edit_cache.dir
 /home/alif-ilhan/Desktop/WRO-FUTURE-ENGINEERS-2025/src/ESP32S3/build/esp-idf/ms5611/CMakeFiles/rebuild_cache.dir
