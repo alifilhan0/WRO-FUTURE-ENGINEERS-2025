@@ -74,19 +74,18 @@ static const int RX_BUF_SIZE = 1024;
 // ================= Sensor Task =================
 void sensor_task(void *pvParameters)
 {
-    esp_err_t res;
     float distance;
 
     while(1)
     {
         // ---- Ultrasonics ----
-        res = ultrasonic_measure(&sensor1, MAX_DISTANCE_CM, &distance);
+        ultrasonic_measure(&sensor1, MAX_DISTANCE_CM, &distance);
         ultra_distances[0] = distance;
 
-        res = ultrasonic_measure(&sensor2, MAX_DISTANCE_CM, &distance);
+        ultrasonic_measure(&sensor2, MAX_DISTANCE_CM, &distance);
         ultra_distances[1] = distance;
 
-        res = ultrasonic_measure(&sensor3, MAX_DISTANCE_CM, &distance);
+        ultrasonic_measure(&sensor3, MAX_DISTANCE_CM, &distance);
         ultra_distances[2] = distance;
 
         // ---- VL53L1X ----
@@ -176,10 +175,10 @@ void handle_command(char* cmd) {
     } else if (strncmp(cmd, "USLeft", 6) == 0) {
         float us = ultra_distances[0];
         snprintf(response, sizeof(response), "USLeft:%f\n", us);
-    } else if (strncmp(cmd, "USRight", 6) == 0) {
+    } else if (strncmp(cmd, "USRight", 7) == 0) {
         float us = ultra_distances[2];
         snprintf(response, sizeof(response), "USRight:%f\n", us);
-    } else if (strncmp(cmd, "USFront", 6) == 0) {
+    } else if (strncmp(cmd, "USFront", 7) == 0) {
         float us = ultra_distances[1];
         snprintf(response, sizeof(response), "USFront:%f\n", us);
     } else if (strncmp(cmd, "FORWARD", 7) == 0) {
@@ -188,6 +187,12 @@ void handle_command(char* cmd) {
     } else if (strncmp(cmd, "BACKWARD", 8) == 0) {
         motor_set(100, 0);
         snprintf(response, sizeof(response), "MOTOR:BACKWARD\n");
+    } else if (strncmp(cmd, "FORWARD_SLOW", 12) == 0) {
+        motor_set(50, 1);
+        snprintf(response, sizeof(response), "MOTOR:FORWARD_SLOW\n");
+    } else if (strncmp(cmd, "BACKWARD_SLOW", 13) == 0) {
+        motor_set(50, 0);
+        snprintf(response, sizeof(response), "MOTOR:BACKWARD_SLOW\n");
     } else if (strncmp(cmd, "STOP", 4) == 0) {
         motor_set(0, 0);
         snprintf(response, sizeof(response), "MOTOR:STOP\n");
@@ -212,7 +217,6 @@ void uart_slave_task(void *arg)
     }
 }
 
-// ================= I2C Slave Init =================
 // ================= Main =================
 void app_main()
 {
