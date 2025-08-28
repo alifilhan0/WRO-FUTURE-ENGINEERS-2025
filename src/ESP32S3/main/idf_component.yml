@@ -16,4 +16,3 @@ dependencies:
   #   public: true
   esp-idf-lib/tca9548: '*'
   esp-idf-lib/ultrasonic: '*'
-  espressif/mpu6050: '*'

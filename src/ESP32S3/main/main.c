@@ -15,47 +15,34 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <esp_system.h>
 #include <driver/i2c.h>
 #include <tca9548.h>
 #include <vl53l1x.h>
-#include <ultrasonic.h>
 #include "driver/uart.h"
 #include "string.h"
 #include "driver/gpio.h"
 #include "driver/mcpwm.h"
+#include "as7341.h"
+#include "mpu6050.h"
+#include "quaternions.h"
+#include "roll_pitch.h"
+#include "driver/gpio.h"
+
+#define BUTTON_GPIO GPIO_NUM_40
+
 #define MAX_DISTANCE_CM 500
 
-// Ultrasonic pins
-#define TRIGGER_GPIO1 36
-#define ECHO_GPIO1 35
-#define TRIGGER_GPIO2 33
-#define ECHO_GPIO2 17
-#define TRIGGER_GPIO3 34
-#define ECHO_GPIO3 18
-
-// I2C slave pins & address
-#define I2C_SLAVE_SDA 13
-#define I2C_SLAVE_SCL 14
-#define I2C_SLAVE_ADDRESS 0x12
-#define I2C_SLAVE_NUM I2C_NUM_1
-#define I2C_SLAVE_RX_BUF_LEN 64
-#define I2C_SLAVE_TX_BUF_LEN 64
-
 // Global buffers for sensor data
-static uint16_t vl53_distances[4] = {0};
-static float ultra_distances[3] = {0.0f};
+static uint16_t vl53_distances[6] = {0};
 
 // TCA9548 and VL53L1X
-static vl53l1x_t *vl53l1x_arr[4];
+static vl53l1x_t *vl53l1x_arr[6];
 static i2c_dev_t i2c_switch = {0};
 
-// Ultrasonic sensors
-ultrasonic_sensor_t sensor1 = { .trigger_pin = TRIGGER_GPIO1, .echo_pin = ECHO_GPIO1 };
-ultrasonic_sensor_t sensor2 = { .trigger_pin = TRIGGER_GPIO2, .echo_pin = ECHO_GPIO2 };
-ultrasonic_sensor_t sensor3 = { .trigger_pin = TRIGGER_GPIO3, .echo_pin = ECHO_GPIO3 };
 static const int RX_BUF_SIZE = 1024;
 
 #define TXD_PIN (13)
@@ -71,36 +58,33 @@ static const int RX_BUF_SIZE = 1024;
 #define DIR_A2 38
 #define PWM_A 37
 #define STBY 33
+int level = 1;
+int lap;
+int color;
 // ================= Sensor Task =================
+sModeOneData_t data1;
+sModeTwoData_t data2;
+
 void sensor_task(void *pvParameters)
 {
-    float distance;
-
     while(1)
     {
-        // ---- Ultrasonics ----
-        ultrasonic_measure(&sensor1, MAX_DISTANCE_CM, &distance);
-        ultra_distances[0] = distance;
-
-        ultrasonic_measure(&sensor2, MAX_DISTANCE_CM, &distance);
-        ultra_distances[1] = distance;
-
-        ultrasonic_measure(&sensor3, MAX_DISTANCE_CM, &distance);
-        ultra_distances[2] = distance;
-
         // ---- VL53L1X ----
         ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(0)));
         vl53_distances[0] = vl53l1x_readSingle(vl53l1x_arr[0], 1);
 
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(2)));
-        vl53_distances[1] = vl53l1x_readSingle(vl53l1x_arr[1], 1);
+         ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(2)));
+         vl53_distances[1] = vl53l1x_readSingle(vl53l1x_arr[1], 1);
 
         ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(4)));
         vl53_distances[2] = vl53l1x_readSingle(vl53l1x_arr[2], 1);
 
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(7)));
-        vl53_distances[3] = vl53l1x_readSingle(vl53l1x_arr[3], 1);
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(3)));
+        vl53_distances[4] = vl53l1x_readSingle(vl53l1x_arr[4], 1);
 
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(5)));
+        vl53_distances[5] = vl53l1x_readSingle(vl53l1x_arr[5], 1);
+        
     }
 }
 
@@ -119,6 +103,9 @@ void init(void)
     uart_param_config(UART_NUM_1, &uart_config);
     uart_set_pin(UART_NUM_1, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 }
+
+
+
 void motor_init() {
     // Direction pins
     gpio_set_direction(DIR_A1, GPIO_MODE_OUTPUT);
@@ -153,55 +140,43 @@ void motor_set(int speed_percent, int direction) {
         gpio_set_level(DIR_A2, 0);
     }
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, speed_percent);
-    printf("Motor speed %d%%, direction %d\n", speed_percent, direction);
-    vTaskDelay(pdMS_TO_TICKS(10));
+   // printf("Motor speed %d%%, direction %d\n", speed_percent, direction);
 }
 
 // Handle received UART commands
 void handle_command(char* cmd) {
     char response[64];
     if (strncmp(cmd, "TOFLeft", 7) == 0) {
-        int tof = vl53_distances[3];
+        int tof = vl53_distances[4];
         snprintf(response, sizeof(response), "TOFLeft:%d\n", tof);
-    } else if (strncmp(cmd, "TOFRight", 6) == 0) {
-        int us = vl53_distances[1];
+    } else if (strncmp(cmd, "TOFRight", 8) == 0) {
+        int us = vl53_distances[5];
         snprintf(response, sizeof(response), "TOFRight:%d\n", us);
-    } else if (strncmp(cmd, "TOFBack", 6) == 0) {
+    } else if (strncmp(cmd, "TOFBack", 7) == 0) {
         int us = vl53_distances[0];
         snprintf(response, sizeof(response), "TOFBack:%d\n", us);
     } else if (strncmp(cmd, "TOFFront", 6) == 0) {
         int us = vl53_distances[2];
         snprintf(response, sizeof(response), "TOFFront:%d\n", us);
-    } else if (strncmp(cmd, "USLeft", 6) == 0) {
-        float us = ultra_distances[0];
-        snprintf(response, sizeof(response), "USLeft:%f\n", us);
-    } else if (strncmp(cmd, "USRight", 7) == 0) {
-        float us = ultra_distances[2];
-        snprintf(response, sizeof(response), "USRight:%f\n", us);
-    } else if (strncmp(cmd, "USFront", 7) == 0) {
-        float us = ultra_distances[1];
-        snprintf(response, sizeof(response), "USFront:%f\n", us);
     } else if (strncmp(cmd, "FORWARD", 7) == 0) {
-        motor_set(100, 1);
-        snprintf(response, sizeof(response), "MOTOR:FORWARD\n");
+        int buf = atoi(cmd + 7);
+        motor_set(buf, 1);
     } else if (strncmp(cmd, "BACKWARD", 8) == 0) {
-        motor_set(100, 0);
-        snprintf(response, sizeof(response), "MOTOR:BACKWARD\n");
-    } else if (strncmp(cmd, "FORWARD_SLOW", 12) == 0) {
-        motor_set(50, 1);
-        snprintf(response, sizeof(response), "MOTOR:FORWARD_SLOW\n");
-    } else if (strncmp(cmd, "BACKWARD_SLOW", 13) == 0) {
-        motor_set(50, 0);
-        snprintf(response, sizeof(response), "MOTOR:BACKWARD_SLOW\n");
+        int buf = atoi(cmd + 8);
+        motor_set(buf, 0);
+        snprintf(response, sizeof(response), "MOTOR:BACKWARD %d\n", buf);
     } else if (strncmp(cmd, "STOP", 4) == 0) {
         motor_set(0, 0);
-        snprintf(response, sizeof(response), "MOTOR:STOP\n");
+    } else if (strncmp(cmd, "COLOR OFF", 5) == 0) {
+        AS7341_EnableLED(false);
+        snprintf(response, sizeof(response), "COLORLED OFF\n");
+    } else if (strncmp(cmd, "COLOR", 5) == 0) {
+        snprintf(response, sizeof(response), "%d\n", color);
     } else {
         snprintf(response, sizeof(response), "ERROR:UNKNOWN_CMD\n");
     }
     uart_write_bytes(UART_NUM_1, response, strlen(response));
 }
-
 
 void uart_slave_task(void *arg)
 {
@@ -217,6 +192,19 @@ void uart_slave_task(void *arg)
     }
 }
 
+void button_init(void) {
+    gpio_config_t io_conf = {
+        .pin_bit_mask = 1ULL << 40,  // GPIO40
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,   // external pull-up already present
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&io_conf);
+}
+
+
+
 // ================= Main =================
 void app_main()
 {
@@ -226,26 +214,19 @@ void app_main()
     ESP_ERROR_CHECK(tca9548_init_desc(&i2c_switch, 0x70, 0, CONFIG_I2C_MASTER_SDA, CONFIG_I2C_MASTER_SCL));
 
     // ---- Initialize VL53L1X ----
-    for(int i=0;i<4;i++){
+
+    for(int i=0;i<6;i++){
         vl53l1x_arr[i] = vl53l1x_config(0, CONFIG_I2C_MASTER_SCL, CONFIG_I2C_MASTER_SDA, -1, 0x29, 0);
     }
-
-    // Start each sensor on different TCA channels
-    const uint8_t channels[4] = {0,2,4,7};
-    for(int i=0;i<4;i++){
+    const uint8_t channels[6] = {0,2,4,7,3,5};
+    for(int i=0;i<6;i++){
         ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(channels[i])));
         vl53l1x_init(vl53l1x_arr[i]);
-        vl53l1x_setROISize(vl53l1x_arr[i], 18, 15);
+        vl53l1x_setROISize(vl53l1x_arr[i], 8, 8);
         vl53l1x_stopContinuous(vl53l1x_arr[i]);
-        vl53l1x_startContinuous(vl53l1x_arr[i], 20000);
+        vl53l1x_startContinuous(vl53l1x_arr[i], 20000); // 50Hz
     }
 
-    // ---- Initialize Ultrasonic ----
-    ultrasonic_init(&sensor1);
-    ultrasonic_init(&sensor2);
-    ultrasonic_init(&sensor3);
-
-    // ---- Start Tasks ----
     init();
     motor_init();
     xTaskCreatePinnedToCore(uart_slave_task, "uart_slave_task", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL, 0);
