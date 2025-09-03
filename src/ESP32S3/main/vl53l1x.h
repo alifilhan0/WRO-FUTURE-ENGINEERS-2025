@@ -68,7 +68,7 @@ void vl53l1x_stopContinuous(vl53l1x_t *);
 //uint16_t vl53l1x_read(vl53l1x_t *,uint8_t blocking);
 
 uint16_t vl53l1x_readSingle(vl53l1x_t *,uint8_t blocking );
-
+uint16_t vl53l1x_read(vl53l1x_t * v, uint8_t blocking);
 uint8_t vl53l1x_dataReady(vl53l1x_t *);
 
 const char *vl53l1x_rangeStatusToString(vl53l1x_t *,vl53l1x_RangeStatus status);

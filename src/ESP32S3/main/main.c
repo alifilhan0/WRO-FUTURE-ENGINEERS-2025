@@ -21,15 +21,14 @@
 #include <esp_system.h>
 #include <driver/i2c.h>
 #include <tca9548.h>
-#include <vl53l1x.h>
+#include "vl53l1x.h"
 #include "driver/uart.h"
 #include "string.h"
 #include "driver/gpio.h"
 #include "driver/mcpwm.h"
-#include "as7341.h"
-#include "mpu6050.h"
-#include "quaternions.h"
-#include "roll_pitch.h"
+//#include "mpu6050.h"
+//#include "quaternions.h"
+//#include "roll_pitch.h"
 #include "driver/gpio.h"
 
 #define BUTTON_GPIO GPIO_NUM_40
@@ -61,29 +60,25 @@ static const int RX_BUF_SIZE = 1024;
 int level = 1;
 int lap;
 int color;
-// ================= Sensor Task =================
-sModeOneData_t data1;
-sModeTwoData_t data2;
 
 void sensor_task(void *pvParameters)
 {
     while(1)
     {
-        // ---- VL53L1X ----
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(0)));
-        vl53_distances[0] = vl53l1x_readSingle(vl53l1x_arr[0], 1);
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(7)));
+        vl53_distances[0] = vl53l1x_read(vl53l1x_arr[0], 1); //Back
 
-         ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(2)));
-         vl53_distances[1] = vl53l1x_readSingle(vl53l1x_arr[1], 1);
+         //ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(2)));
+         //vl53_distances[1] = vl53l1x_read(vl53l1x_arr[1], 1);
 
         ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(4)));
-        vl53_distances[2] = vl53l1x_readSingle(vl53l1x_arr[2], 1);
+        vl53_distances[2] = vl53l1x_read(vl53l1x_arr[2], 1); //Front
 
         ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(3)));
-        vl53_distances[4] = vl53l1x_readSingle(vl53l1x_arr[4], 1);
+        vl53_distances[4] = vl53l1x_read(vl53l1x_arr[4], 1); //Left
 
         ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(5)));
-        vl53_distances[5] = vl53l1x_readSingle(vl53l1x_arr[5], 1);
+        vl53_distances[5] = vl53l1x_read(vl53l1x_arr[5], 1); //Right
         
     }
 }
@@ -112,9 +107,6 @@ void motor_init() {
     gpio_set_direction(DIR_A2, GPIO_MODE_OUTPUT);
     // Standby pin
     gpio_set_direction(STBY, GPIO_MODE_OUTPUT);
-    gpio_set_level(STBY, 1); // enable driver
-
-    // PWM pin
     mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, PWM_A);
 
     mcpwm_config_t pwm_config = {
@@ -129,10 +121,10 @@ void motor_init() {
 
 // speed_percent: 0-100, direction: 1=forward, 0=reverse
 void motor_set(int speed_percent, int direction) {
-    if(direction == 1 && speed_percent != 0) {
+    if(direction == 2 && speed_percent != 0) {
         gpio_set_level(DIR_A1, 1);
         gpio_set_level(DIR_A2, 0);
-    } else if(direction == 0 && speed_percent != 0) {
+    } else if(direction == 1 && speed_percent != 0) {
         gpio_set_level(DIR_A1, 0);
         gpio_set_level(DIR_A2, 1);
     } else if(direction == 0 && speed_percent == 0) {
@@ -140,36 +132,32 @@ void motor_set(int speed_percent, int direction) {
         gpio_set_level(DIR_A2, 0);
     }
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, speed_percent);
-   // printf("Motor speed %d%%, direction %d\n", speed_percent, direction);
 }
 
 // Handle received UART commands
 void handle_command(char* cmd) {
     char response[64];
-    if (strncmp(cmd, "TOFLeft", 7) == 0) {
-        int tof = vl53_distances[4];
-        snprintf(response, sizeof(response), "TOFLeft:%d\n", tof);
-    } else if (strncmp(cmd, "TOFRight", 8) == 0) {
-        int us = vl53_distances[5];
-        snprintf(response, sizeof(response), "TOFRight:%d\n", us);
-    } else if (strncmp(cmd, "TOFBack", 7) == 0) {
-        int us = vl53_distances[0];
-        snprintf(response, sizeof(response), "TOFBack:%d\n", us);
-    } else if (strncmp(cmd, "TOFFront", 6) == 0) {
-        int us = vl53_distances[2];
-        snprintf(response, sizeof(response), "TOFFront:%d\n", us);
-    } else if (strncmp(cmd, "FORWARD", 7) == 0) {
-        int buf = atoi(cmd + 7);
+    if (strncmp(cmd, "TFL", 3) == 0) {
+        snprintf(response, sizeof(response), "TFL:%hu\n", vl53_distances[4]);
+    } else if (strncmp(cmd, "TFR", 3) == 0) {
+        snprintf(response, sizeof(response), "TFR:%hu\n", vl53_distances[5]);
+    } else if (strncmp(cmd, "TFB", 3) == 0) {
+        snprintf(response, sizeof(response), "TFB:%hu\n", vl53_distances[0]);
+    } else if (strncmp(cmd, "TFF", 3) == 0) {
+        snprintf(response, sizeof(response), "TFF:%hu\n", vl53_distances[2]);
+    } else if (strncmp(cmd, "MF", 2) == 0) {
+        int buf = atoi(cmd + 2);
+        motor_set(buf, 2);
+        snprintf(response, sizeof(response), "MF %d\n", buf);
+    } else if (strncmp(cmd, "ALL", 3)) {
+        snprintf(response, sizeof(response), "TFL:%hu TFR:%hu TFB:%hu TFF:%hu\n", vl53_distances[4], vl53_distances[5], vl53_distances[0], vl53_distances[2]); //get all data at once
+    } else if (strncmp(cmd, "MB", 2) == 0) {
+        int buf = atoi(cmd + 2);
         motor_set(buf, 1);
-    } else if (strncmp(cmd, "BACKWARD", 8) == 0) {
-        int buf = atoi(cmd + 8);
-        motor_set(buf, 0);
-        snprintf(response, sizeof(response), "MOTOR:BACKWARD %d\n", buf);
+        snprintf(response, sizeof(response), "MB %d\n", buf);
     } else if (strncmp(cmd, "STOP", 4) == 0) {
         motor_set(0, 0);
-    } else if (strncmp(cmd, "COLOR OFF", 5) == 0) {
-        AS7341_EnableLED(false);
-        snprintf(response, sizeof(response), "COLORLED OFF\n");
+        snprintf(response, sizeof(response), "STOP\n");
     } else if (strncmp(cmd, "COLOR", 5) == 0) {
         snprintf(response, sizeof(response), "%d\n", color);
     } else {
@@ -196,7 +184,7 @@ void button_init(void) {
     gpio_config_t io_conf = {
         .pin_bit_mask = 1ULL << 40,  // GPIO40
         .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,   // external pull-up already present
+        .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE
     };
@@ -210,10 +198,7 @@ void app_main()
 {
     ESP_ERROR_CHECK(i2cdev_init());
 
-    // ---- Initialize TCA9548 ----
     ESP_ERROR_CHECK(tca9548_init_desc(&i2c_switch, 0x70, 0, CONFIG_I2C_MASTER_SDA, CONFIG_I2C_MASTER_SCL));
-
-    // ---- Initialize VL53L1X ----
 
     for(int i=0;i<6;i++){
         vl53l1x_arr[i] = vl53l1x_config(0, CONFIG_I2C_MASTER_SCL, CONFIG_I2C_MASTER_SDA, -1, 0x29, 0);

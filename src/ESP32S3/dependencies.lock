@@ -90,7 +90,7 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.5.0
+    version: 5.5.1
 direct_dependencies:
 - esp-idf-lib/tca9548
 - esp-idf-lib/ultrasonic
