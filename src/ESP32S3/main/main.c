@@ -21,6 +21,7 @@
 #include <esp_system.h>
 #include <driver/i2c.h>
 #include <tca9548.h>
+#include "freertos/projdefs.h"
 #include "vl53l1x.h"
 #include "driver/uart.h"
 #include "string.h"
@@ -53,52 +54,13 @@ static const int RX_BUF_SIZE = 1024;
 #define MOTOR_GEN_B MCPWM_OPR_B
 #define PWM_FREQ_HZ 1000
 
-#define DIR_A1 9
-#define DIR_A2 38
-#define PWM_A 37
+#define DIR_A1 4
+#define DIR_A2 2
+#define PWM_A 8
 #define STBY 33
 int level = 1;
 int lap;
 int color;
-
-void sensor_task(void *pvParameters)
-{
-    while(1)
-    {
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(7)));
-        vl53_distances[0] = vl53l1x_read(vl53l1x_arr[0], 1); //Back
-
-         //ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(2)));
-         //vl53_distances[1] = vl53l1x_read(vl53l1x_arr[1], 1);
-
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(4)));
-        vl53_distances[2] = vl53l1x_read(vl53l1x_arr[2], 1); //Front
-
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(3)));
-        vl53_distances[4] = vl53l1x_read(vl53l1x_arr[4], 1); //Left
-
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(5)));
-        vl53_distances[5] = vl53l1x_read(vl53l1x_arr[5], 1); //Right
-        
-    }
-}
-
-void init(void)
-{
-    const uart_config_t uart_config = {
-        .baud_rate = 115200,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .source_clk = UART_SCLK_DEFAULT,
-    };
-    // We won't use a buffer for sending data.
-    uart_driver_install(UART_NUM_1, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
-    uart_param_config(UART_NUM_1, &uart_config);
-    uart_set_pin(UART_NUM_1, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-}
-
 
 
 void motor_init() {
@@ -121,22 +83,60 @@ void motor_init() {
 
 // speed_percent: 0-100, direction: 1=forward, 0=reverse
 void motor_set(int speed_percent, int direction) {
-    if(direction == 2 && speed_percent != 0) {
+    if(direction == 2) {
         gpio_set_level(DIR_A1, 1);
         gpio_set_level(DIR_A2, 0);
-    } else if(direction == 1 && speed_percent != 0) {
+    } else if(direction == 1) {
         gpio_set_level(DIR_A1, 0);
         gpio_set_level(DIR_A2, 1);
-    } else if(direction == 0 && speed_percent == 0) {
+    } else if(direction == 0) {
         gpio_set_level(DIR_A1, 0);
         gpio_set_level(DIR_A2, 0);
     }
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, speed_percent);
 }
 
+void sensor_task(void *pvParameters)
+{
+    while(1)
+    {
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(7)));
+        vl53_distances[0] = vl53l1x_readSingle(vl53l1x_arr[0], 1); //Back
+         //ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(2)));
+         //vl53_distances[1] = vl53l1x_read(vl53l1x_arr[1], 1);
+
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(4)));
+        vl53_distances[2] = vl53l1x_readSingle(vl53l1x_arr[2], 1); //Front
+
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(3)));
+        vl53_distances[4] = vl53l1x_readSingle(vl53l1x_arr[4], 1); //Left
+
+        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(5)));
+        vl53_distances[5] = vl53l1x_readSingle(vl53l1x_arr[5], 1); //Right
+        vTaskDelay(pdMS_TO_TICKS(30));
+    }
+}
+
+void init(void)
+{
+    const uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+    // We won't use a buffer for sending data.
+    uart_driver_install(UART_NUM_1, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
+    uart_param_config(UART_NUM_1, &uart_config);
+    uart_set_pin(UART_NUM_1, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+}
+
 // Handle received UART commands
 void handle_command(char* cmd) {
     char response[64];
+
     if (strncmp(cmd, "TFL", 3) == 0) {
         snprintf(response, sizeof(response), "TFL:%hu\n", vl53_distances[4]);
     } else if (strncmp(cmd, "TFR", 3) == 0) {
@@ -151,6 +151,7 @@ void handle_command(char* cmd) {
         snprintf(response, sizeof(response), "MF %d\n", buf);
     } else if (strncmp(cmd, "ALL", 3)) {
         snprintf(response, sizeof(response), "TFL:%hu TFR:%hu TFB:%hu TFF:%hu\n", vl53_distances[4], vl53_distances[5], vl53_distances[0], vl53_distances[2]); //get all data at once
+        vTaskDelay(pdMS_TO_TICKS(30));
     } else if (strncmp(cmd, "MB", 2) == 0) {
         int buf = atoi(cmd + 2);
         motor_set(buf, 1);
@@ -163,12 +164,14 @@ void handle_command(char* cmd) {
     } else {
         snprintf(response, sizeof(response), "ERROR:UNKNOWN_CMD\n");
     }
+
+   // snprintf(response, sizeof(response), "TFL:%d TFR:%d TFB:%d TFF:%d\n", vl53_distances[4], vl53_distances[5], vl53_distances[0], vl53_distances[2]); //get all data at once
+    //vTaskDelay(pdMS_TO_TICKS(30));
     uart_write_bytes(UART_NUM_1, response, strlen(response));
 }
 
 void uart_slave_task(void *arg)
 {
-
     char* data = (char*) malloc(RX_BUF_SIZE + 1);
     while(1)
     {
@@ -191,8 +194,6 @@ void button_init(void) {
     gpio_config(&io_conf);
 }
 
-
-
 // ================= Main =================
 void app_main()
 {
@@ -207,7 +208,7 @@ void app_main()
     for(int i=0;i<6;i++){
         ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(channels[i])));
         vl53l1x_init(vl53l1x_arr[i]);
-        vl53l1x_setROISize(vl53l1x_arr[i], 8, 8);
+        vl53l1x_setROISize(vl53l1x_arr[i], 4, 4);
         vl53l1x_stopContinuous(vl53l1x_arr[i]);
         vl53l1x_startContinuous(vl53l1x_arr[i], 20000); // 50Hz
     }

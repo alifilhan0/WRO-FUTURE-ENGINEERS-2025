@@ -1740,8 +1740,8 @@ const char *vl53l1x_init(vl53l1x_t * v)
 
    // default to long range, 50 ms timing budget
    // note that this is different than what the API defaults to
-   vl53l1x_setDistanceMode(v, VL53L1X_Long);
-   vl53l1x_setMeasurementTimingBudget(v, 50000);
+   vl53l1x_setDistanceMode(v, VL53L1X_Medium);
+   vl53l1x_setMeasurementTimingBudget(v, 20000);
 
    // VL53L1_StaticInit() end
 
