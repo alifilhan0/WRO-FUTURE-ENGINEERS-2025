@@ -100,20 +100,19 @@ void sensor_task(void *pvParameters)
 {
     while(1)
     {
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(7)));
-        vl53_distances[0] = vl53l1x_readSingle(vl53l1x_arr[0], 1); //Back
-         //ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(2)));
-         //vl53_distances[1] = vl53l1x_read(vl53l1x_arr[1], 1);
+        tca9548_set_channels(&i2c_switch, BIT(3));
+        vl53_distances[1] = vl53l1x_readSingle(vl53l1x_arr[1], 1); //right
 
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(4)));
-        vl53_distances[2] = vl53l1x_readSingle(vl53l1x_arr[2], 1); //Front
+        tca9548_set_channels(&i2c_switch, BIT(4));
+        vTaskDelay(pdMS_TO_TICKS(10));
+        vl53_distances[0] = vl53l1x_readSingle(vl53l1x_arr[0], 1); //Left
 
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(3)));
-        vl53_distances[4] = vl53l1x_readSingle(vl53l1x_arr[4], 1); //Left
+        tca9548_set_channels(&i2c_switch, BIT(5));
+        vl53_distances[2] = vl53l1x_readSingle(vl53l1x_arr[2], 1); //front
 
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(5)));
-        vl53_distances[5] = vl53l1x_readSingle(vl53l1x_arr[5], 1); //Right
-        vTaskDelay(pdMS_TO_TICKS(30));
+        tca9548_set_channels(&i2c_switch, BIT(0));
+        vl53_distances[3] = vl53l1x_readSingle(vl53l1x_arr[3], 1); //Back
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
@@ -138,11 +137,11 @@ void handle_command(char* cmd) {
     char response[64];
 
     if (strncmp(cmd, "TFL", 3) == 0) {
-        snprintf(response, sizeof(response), "TFL:%hu\n", vl53_distances[4]);
+        snprintf(response, sizeof(response), "TFL:%hu\n", vl53_distances[0]);
     } else if (strncmp(cmd, "TFR", 3) == 0) {
-        snprintf(response, sizeof(response), "TFR:%hu\n", vl53_distances[5]);
+        snprintf(response, sizeof(response), "TFR:%hu\n", vl53_distances[1]);
     } else if (strncmp(cmd, "TFB", 3) == 0) {
-        snprintf(response, sizeof(response), "TFB:%hu\n", vl53_distances[0]);
+        snprintf(response, sizeof(response), "TFB:%hu\n", vl53_distances[3]);
     } else if (strncmp(cmd, "TFF", 3) == 0) {
         snprintf(response, sizeof(response), "TFF:%hu\n", vl53_distances[2]);
     } else if (strncmp(cmd, "MF", 2) == 0) {
@@ -150,7 +149,7 @@ void handle_command(char* cmd) {
         motor_set(buf, 2);
         snprintf(response, sizeof(response), "MF %d\n", buf);
     } else if (strncmp(cmd, "ALL", 3)) {
-        snprintf(response, sizeof(response), "TFL:%hu TFR:%hu TFB:%hu TFF:%hu\n", vl53_distances[4], vl53_distances[5], vl53_distances[0], vl53_distances[2]); //get all data at once
+        snprintf(response, sizeof(response), "TFL:%hu TFR:%hu TFB:%hu TFF:%hu\n", vl53_distances[0], vl53_distances[1], vl53_distances[3], vl53_distances[2]); //get all data at once
         vTaskDelay(pdMS_TO_TICKS(30));
     } else if (strncmp(cmd, "MB", 2) == 0) {
         int buf = atoi(cmd + 2);
@@ -165,8 +164,6 @@ void handle_command(char* cmd) {
         snprintf(response, sizeof(response), "ERROR:UNKNOWN_CMD\n");
     }
 
-   // snprintf(response, sizeof(response), "TFL:%d TFR:%d TFB:%d TFF:%d\n", vl53_distances[4], vl53_distances[5], vl53_distances[0], vl53_distances[2]); //get all data at once
-    //vTaskDelay(pdMS_TO_TICKS(30));
     uart_write_bytes(UART_NUM_1, response, strlen(response));
 }
 
@@ -199,17 +196,18 @@ void app_main()
 {
     ESP_ERROR_CHECK(i2cdev_init());
 
-    ESP_ERROR_CHECK(tca9548_init_desc(&i2c_switch, 0x70, 0, CONFIG_I2C_MASTER_SDA, CONFIG_I2C_MASTER_SCL));
+    tca9548_init_desc(&i2c_switch, 0x70, 0, CONFIG_I2C_MASTER_SDA, CONFIG_I2C_MASTER_SCL);
 
-    for(int i=0;i<6;i++){
+    const uint8_t channels[4] = {0,4,3,5};
+    for(int i=0;i<4;i++){
+        tca9548_set_channels(&i2c_switch, BIT(channels[i]));
         vl53l1x_arr[i] = vl53l1x_config(0, CONFIG_I2C_MASTER_SCL, CONFIG_I2C_MASTER_SDA, -1, 0x29, 0);
     }
-    const uint8_t channels[6] = {0,2,4,7,3,5};
-    for(int i=0;i<6;i++){
-        ESP_ERROR_CHECK(tca9548_set_channels(&i2c_switch, BIT(channels[i])));
+    for(int i=0;i<4;i++){
+        tca9548_set_channels(&i2c_switch, BIT(channels[i]));
         vl53l1x_init(vl53l1x_arr[i]);
         vl53l1x_setROISize(vl53l1x_arr[i], 4, 4);
-        vl53l1x_stopContinuous(vl53l1x_arr[i]);
+        //vl53l1x_stopContinuous(vl53l1x_arr[i]);
         vl53l1x_startContinuous(vl53l1x_arr[i], 20000); // 50Hz
     }
 
