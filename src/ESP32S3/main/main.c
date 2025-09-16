@@ -210,7 +210,6 @@ void button_init(void) {
     gpio_config(&io_conf);
 }
 
-// ================= Main =================
 void app_main()
 {
     ESP_ERROR_CHECK(i2cdev_init());
