@@ -31,6 +31,7 @@
 //#include "quaternions.h"
 //#include "roll_pitch.h"
 #include "driver/gpio.h"
+#include "tcs34725.h"
 
 #define BUTTON_GPIO GPIO_NUM_40
 
@@ -39,6 +40,7 @@
 // Global buffers for sensor data
 static uint16_t vl53_distances[6] = {0};
 
+ESP32_TCS34725 *TCS = NULL;
 // TCA9548 and VL53L1X
 static vl53l1x_t *vl53l1x_arr[6];
 static i2c_dev_t i2c_switch = {0};
@@ -59,7 +61,7 @@ static const int RX_BUF_SIZE = 1024;
 #define PWM_A 8
 #define STBY 33
 int level = 1;
-int lap;
+int lap = 0;;
 int color;
 
 
@@ -96,8 +98,21 @@ void motor_set(int speed_percent, int direction) {
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, speed_percent);
 }
 
+int getlap(ESP32_TCS34725 *TCS, float r, float g, float b)
+{
+    TCS_getRGB(TCS, &r, &g, &b);
+    int rgb = (((int)r << 16) | ((int)g << 8) | ((int)b << 0));
+    uint16_t temp = calculateColorTemperature(r, g, b); // Alif: - Maybe used later for an even better algorithm
+    uint16_t lux = calculateLux(r, g, b); // Alif :- Maybe used later for an even better algorithm
+    if(rgb >= 0xdc0000 || rgb <= 0x00dddd) // dc0000 = reference reddish low orange value. 00dddd = reference bright blue value used for lap counting
+    {
+        lap++;
+    }
+}
+
 void sensor_task(void *pvParameters)
 {
+    float r = 0.0f, g = 0.0f, b = 0.0f;
     while(1)
     {
         tca9548_set_channels(&i2c_switch, BIT(3));
@@ -112,6 +127,10 @@ void sensor_task(void *pvParameters)
 
         tca9548_set_channels(&i2c_switch, BIT(0));
         vl53_distances[3] = vl53l1x_readSingle(vl53l1x_arr[3], 1); //Back
+
+
+        tca9548_set_channels(&i2c_switch, BIT(7));
+        getlap(TCS, r, g, b);
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
@@ -158,8 +177,8 @@ void handle_command(char* cmd) {
     } else if (strncmp(cmd, "STOP", 4) == 0) {
         motor_set(0, 0);
         snprintf(response, sizeof(response), "STOP\n");
-    } else if (strncmp(cmd, "COLOR", 5) == 0) {
-        snprintf(response, sizeof(response), "%d\n", color);
+    } else if (strncmp(cmd, "LAP", 5) == 0) {
+        snprintf(response, sizeof(response), "%d\n", lap);
     } else {
         snprintf(response, sizeof(response), "ERROR:UNKNOWN_CMD\n");
     }
@@ -195,7 +214,6 @@ void button_init(void) {
 void app_main()
 {
     ESP_ERROR_CHECK(i2cdev_init());
-
     tca9548_init_desc(&i2c_switch, 0x70, 0, CONFIG_I2C_MASTER_SDA, CONFIG_I2C_MASTER_SCL);
 
     const uint8_t channels[4] = {0,4,3,5};
@@ -211,6 +229,8 @@ void app_main()
         vl53l1x_startContinuous(vl53l1x_arr[i], 20000); // 50Hz
     }
 
+    tca9548_set_channels(&i2c_switch, 7);
+    TCS_init(TCS, 0, CONFIG_I2C_MASTER_SDA, CONFIG_I2C_MASTER_SCL);
     init();
     motor_init();
     xTaskCreatePinnedToCore(uart_slave_task, "uart_slave_task", configMINIMAL_STACK_SIZE * 3, NULL, 5, NULL, 0);
