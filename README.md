@@ -72,19 +72,19 @@ The cameras are responsible for the vision and are the primary sources of data f
 
 ### Sensor specifications
 
-  - **Name: TCS34725**
+**Name: TCS34725**
   - Type: RGB color sensor
   - Communication: I2C, Address: 0x29 through PCA9548A channel 7
   - Purpose: Calculate the amount of laps taken.
   
-  - **Name: VL53L1X**
+**Name: VL53L1X**
   - Type: ToF sensor
   - Communication: I2C Address 0x29, through PCA9548A channels 0,3,4,5
   - Range & Blind spots: upto 400cm & 4cm
   - Purpose: Calculate distance of the closest obstruction from the present location.
   The main reason being that this sensor can sample data @ 50Hz, which is a good feature if we want to operate the car in high velocity without reducing accuracy.
   
-  - **Name: OV5647**
+**Name: OV5647**
   - Type: CSI camera module
   - Communication: MIPI CSI bus ID 0
   - Purpose: The main vision of the car system. Has 120 degree field of vision which is ample for our requirement to provide a field of vision for the system. It is responsible for detecting objects and any artifact on its path and send data to be processed.
