@@ -20,6 +20,8 @@ $ idf.py flash
 
 And the ESP32-S3 will be ready to be used as a Line Follower Robot to gather Data.
 
+![alt text](src/other/Line_follower/Line_follower_demo.gif)
+
 **Important:- Make a note of the PIN names in the code. It must match the circuit. All our pins follow the GPXX layout in the official datasheet. Please refer to your own board pinout for reference. Below is an attached table with our pin assingments.**
 
 | Pin   | Function|
