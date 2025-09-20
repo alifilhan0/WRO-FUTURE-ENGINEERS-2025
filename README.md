@@ -140,9 +140,9 @@ It’s apparent from the design that the front and rear wheels have different di
 > **Front wheel (6)** Diameter: ***40mm*** <br>
 > **Rear wheel (17)** Diameter: ***60mm***
 
-| Formula            | Where |
-|--------------------|-------|
-| $$ v = r \omega $$ | $v =$ linear velocity <br> $r =$ radius <br> $\omega =$ angular velocity |
+| Formula          | Where |
+|------------------|-------|
+| $v = r \omega$   | $v$ = linear velocity <br> $r$ = radius <br> $\omega$ = angular velocity |
 
 Very self explanotory how ***increasing the wheel radius ($r$) increased the car’s speed ($v$).*** The drawback was that, given the relatively low-torque motor, the car sometimes struggled to pick up speed from a stall position, especially considering its weight. However, this was not a major issue in practice, since during runs the car mostly operates at a near-constant velocity once in motion.
 
@@ -644,6 +644,7 @@ The `steering.kmodel` will be created in `tmp/steering`. Copy it and paste it to
 - Deployed to K230 CanMV after converting to .kmodel.
 
 The above pipeline enables our robot to navigate the path and precise steering control in accordance with trained data.
+
 
 
 
