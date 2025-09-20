@@ -305,11 +305,11 @@ ToF sensors use infrared (IR) light to measure proximity, and calibration is not
 
 #### Solution and Process
 
-Since the sensors work by emitting IR, we needed to visualize where the IR light was reflecting. CCD-based webcams are sensitive to IR, so we modified one by removing its IR filter lens. This allowed us to directly observe the ToF IR emission patterns and how they reflected off surfaces. Using this method, we could finally align the sensors accurately with the track.
+Since the sensors work by emitting IR, we needed to visualize where the IR light was reflecting. CCD-based webcams are sensitive to IR, so we modified one by removing its **IR-Cutoff Filer**. 
 
+![alt text](Images/ircut.gif)
 
-
-
+This allowed us to directly observe the ToF IR emission patterns and how they reflected off surfaces. Using this method, we could finally align the sensors accurately with the track.
 
 ### How it works at low level
 
@@ -644,6 +644,7 @@ The `steering.kmodel` will be created in `tmp/steering`. Copy it and paste it to
 - Deployed to K230 CanMV after converting to .kmodel.
 
 The above pipeline enables our robot to navigate the path and precise steering control in accordance with trained data.
+
 
 
 
