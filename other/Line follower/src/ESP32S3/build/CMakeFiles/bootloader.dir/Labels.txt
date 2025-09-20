@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+/home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/CMakeFiles/bootloader
+/home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/CMakeFiles/bootloader.rule
+/home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/CMakeFiles/bootloader-complete.rule
+/home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule

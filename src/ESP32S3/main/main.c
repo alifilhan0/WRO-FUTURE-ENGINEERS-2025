@@ -168,7 +168,7 @@ void handle_command(char* cmd) {
         motor_set(buf, 2);
         snprintf(response, sizeof(response), "MF %d\n", buf);
     } else if (strncmp(cmd, "ALL", 3)) {
-        snprintf(response, sizeof(response), "TFL:%hu TFR:%hu TFB:%hu TFF:%hu\n", vl53_distances[0], vl53_distances[1], vl53_distances[3], vl53_distances[2]); //get all data at once
+        snprintf(response, sizeof(response), "ALL:%04hu%04hu%04hu%04hu\n", vl53_distances[0], vl53_distances[1], vl53_distances[2], vl53_distances[3]); //get all data at once
         vTaskDelay(pdMS_TO_TICKS(30));
     } else if (strncmp(cmd, "MB", 2) == 0) {
         int buf = atoi(cmd + 2);

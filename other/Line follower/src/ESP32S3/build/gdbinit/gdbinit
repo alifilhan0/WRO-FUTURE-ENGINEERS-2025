@@ -1,0 +1,2 @@
+source /home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/gdbinit/symbols
+source /home/alif/Downloads/WRO-FUTURE-ENGINEERS-2025-main/src/ESP32S3/build/gdbinit/connect

@@ -491,7 +491,7 @@ import pandas as pd
 
 We used Google Colab for training:
 Here is the attached ipynb file
-<@AZMAIN ATTACH THE IPYNB FILE OF MODEL TRAINING>
+[WRO_Open_Challenge_ML_Model.ipynb](src/Kendryte/WRO_Open_Challenge_ML_Model.ipynb)
 
 **Required Libraries**
 ```python
@@ -630,7 +630,7 @@ root@i650j345# pip install nncase nncase-kpu /* Need to do this everytime */
 root@i650j345# cd src/big/nncase/examples
 root@i650j345# python3 ./scripts/1.py —target k230 —model ./models/model.tflite
 ```
-> **Note:** We provided a 1.py script which must be used, default official scripts will not work
+> **Note:** We provided a [1.py](src/Kendryte/1.py) script which must be used, default official scripts will not work. Please put it under `k230_sdk/big/nncase/examples/scripts` to complete the build or modify accordingly.
 
 The `steering.kmodel` will be created in `tmp/steering`. Copy it and paste it to K230 board’s sd card’s root directory. You are ready to play around with it.
 
@@ -647,8 +647,112 @@ The above pipeline enables our robot to navigate the path and precise steering c
 
 ## Overview ( Obstacle Challenge )
 
-As of 20/09/2025, we have not been able to sufficiently work on the obstacle round and parking algorithm due to our ongoing university examinations, after which we will be able to dedicate time to implementing and testing the respective algorithms. Therefore, no working code or further documentaion is available for presentation at this stage.
+We have initial breakthroughs on the obstacle round by combining the camera and the time of flight sensors. Every process is same except we are now collecting object data, and their poisiton in X and Y coordinates in the camera vision range, and also distance and proximity data. Our model trained with the data can now predict steering angle basing on the available data.
 
+**Finding out object position and plotting boxes around it:-**
+```python
+        # Green
+        green_blobs = img.find_blobs([green_threshold], pixels_threshold=20, area_threshold=20, merge=True)
+        if green_blobs:
+            biggest_green = max(green_blobs, key=lambda b: b.w() * b.h())
+            x, y, w, h = biggest_green.rect()
+            gx = x - 160
+            gy = 240 - (y + h)
+            if gy < 130:
+                leftgreenx, leftgreeny = gx, gy
+                img.draw_rectangle((x, y, w, h), color=(0, 255, 0))
+                img.draw_cross(biggest_green.cx(), biggest_green.cy(), color=(255, 0, 0))
+
+        # Red
+        red_blobs = img.find_blobs([red_threshold], pixels_threshold=50, area_threshold=50, merge=True)
+        if red_blobs:
+            biggest_red = max(red_blobs, key=lambda b: b.w() * b.h())
+            x, y, w, h = biggest_red.rect()
+            rx = (x + w) - 160
+            ry = 240 - (y + h)
+            if ry < 130:
+                rightredx, rightredy = rx, ry
+                img.draw_rectangle((x, y, w, h), color=(255, 0, 0))
+                img.draw_cross(biggest_red.cx(), biggest_red.cy(), color=(0, 255, 0))
+
+```
+
+**And then we collect the data to train it. The model predicts output by:-**
+```python
+
+def predict_steering(tfl, tfr, tff, leftgreenx, leftgreeny, rightredx, rightredy):
+    try:
+        steering = _try_run_with_array([tfl, tfr, tff, leftgreenx, leftgreeny, rightredx, rightredy])
+        print(f"Raw steering: {steering}")
+        steering = steering/100
+        if steering < -22:
+            steering = -22
+        if steering > 22:
+            steering = 22
+        print(f"Final steering: {steering}")
+        return steering
+    except Exception as e:
+        print("Model inference failed:", e)
+        return 0.0
+
+        
+/* And in the main loop */
+
+        # Green
+        green_blobs = img.find_blobs([green_threshold], pixels_threshold=20, area_threshold=20, merge=True)
+        if green_blobs:
+            biggest_green = max(green_blobs, key=lambda b: b.w() * b.h())
+            x, y, w, h = biggest_green.rect()
+            gx = x - 160
+            gy = 240 - (y + h)
+            if gy < 130:
+                leftgreenx, leftgreeny = gx, gy
+                #img.draw_rectangle((x, y, w, h), color=(0, 255, 0))
+                #img.draw_cross(biggest_green.cx(), biggest_green.cy(), color=(255, 0, 0))
+
+        # Red
+        red_blobs = img.find_blobs([red_threshold], pixels_threshold=50, area_threshold=50, merge=True)
+        if red_blobs:
+            biggest_red = max(red_blobs, key=lambda b: b.w() * b.h())
+            x, y, w, h = biggest_red.rect()
+            rx = (x + w) - 160
+            ry = 240 - (y + h)
+            if ry < 130:
+                rightredx, rightredy = rx, ry
+                #img.draw_rectangle((x, y, w, h), color=(255, 0, 0))
+                #img.draw_cross(biggest_red.cx(), biggest_red.cy(), color=(0, 255, 0))
+
+        # ------------------------------
+        # ToF sensor data
+        # ------------------------------
+        front = get_sensor_data("TFF", "TFF", 20)
+        left  = get_sensor_data("TFL", "TFL", 20)
+        right = get_sensor_data("TFR", "TFR", 20)
+
+        if left is None: left = last_valid["left"]
+        else: last_valid["left"] = left
+        if right is None: right = last_valid["right"]
+        else: last_valid["right"] = right
+        if front is None: front = last_valid["front"]
+        else: last_valid["front"] = front
+
+        now = time.ticks_ms()
+        if time.ticks_diff(now, last_infer) >= 70:  # ~10 Hz
+            try:
+                print(f"\nRaw Sensors: L={left}, R={right}, F={front}, LG=({leftgreenx},{leftgreeny}), RR=({rightredx},{rightredy})")
+                steering = predict_steering(left, right, front, leftgreenx, leftgreeny, rightredx, rightredy)
+                print(f"→ Applied steering: {steering:.2f}°\n")
+            except Exception as e:
+                print("Inference error:", e)
+                steering = 0.0
+            last_infer = now
+
+        Servo(S1, steering)
+        Display.show_image(img)
+        gc.collect()
+        time.sleep_ms(20)
+```
+**Note:- This is subject to change, as we are still figuring out how to train the model with proper and adverse condition data to be able to precicely predict the turns in difficult situations. So as of 20/09/2025, we have not been able to sufficiently work on the obstacle round and parking algorithm due to our ongoing university's semsester final examinations, after which we will be able to dedicate time to implementing and testing the respective algorithms. Therefore, no further documentaion is available for presentation at this stage. Parking algorithm and its documentation is still in infancy, will be uploaded soon.**
 
 
 
