@@ -162,7 +162,6 @@ As for the wheels Grips, we had experience making silicone wheels by casting the
 
 | ![alt text](<Images/Top and Base.jpg>) | ![alt text](Images/TOP-BOT.jpg) | 
 | :--: | :--: | 
-| Wheel diameter comparison  | Cricket Bat - Wheel Grips |
 
 The entire structure of the **top (5)** and the **base (6)** was edited dozens of times, so the current iteration is somewhat patched together as we built on top of the original design. It went through multiple sensor mount shifts and other modifications. Larger cutouts were kept strategically for minimal cable clutter, easier routing, and to reduce overall weight. The **top (5)** and the **base (6)** are connected using ***20 mm brass hex spacers (4)***, with additional ***3D printed spacers (3)*** used alongside the brass hardware to reach the required height. The mounts for the TOF sensors are built directly into the **top (5)** while this left less room for later adjustments, the layout was finalized after extensive iterations and worked reliably for our needs.
 
