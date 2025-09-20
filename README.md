@@ -645,6 +645,12 @@ The `steering.kmodel` will be created in `tmp/steering`. Copy it and paste it to
 
 The above pipeline enables our robot to navigate the path and precise steering control in accordance with trained data.
 
+## Overview ( Obstacle Challenge )
+
+As of 20/09/2025, we have not been able to sufficiently work on the obstacle round and parking algorithm due to our ongoing university examinations, after which we will be able to dedicate time to implementing and testing the respective algorithms. Therefore, no working code or further documentaion is available for presentation at this stage.
+
+
+
 
 
 
